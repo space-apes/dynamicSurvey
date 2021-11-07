@@ -2,6 +2,7 @@ from datetime import datetime
 import numpy as np
 from mathtools import logistic
 from random import gauss
+from math import log
 
 """
 NUMBER OF HIDDEN UNITS:
@@ -25,7 +26,6 @@ Set initial value of hidden unit biases to 0.
 """
 
 class RBM:
-	learningRate = 0
 	visibleUnitCount = 0 
 	hiddenUnitCount = 0
 	trainingSet = []
@@ -37,7 +37,6 @@ class RBM:
 
 	def __init__(self, _learningRate, _hiddenUnitCount, _logFileObject, _trainingSet):
 		self.trainingSet = _trainingSet
-		self.learningRate = _learningRate
 		self.hiddenUnitCount = _hiddenUnitCount
 		self.logFileObject = _logFileObject
 		self.logInternals("set initial parameters")
@@ -50,51 +49,91 @@ class RBM:
 		#initialize hidden x visible weight matrix to 0s	
 		self.weights = np.zeros((self.visibleUnitCount, self.hiddenUnitCount))
 
-		#set initial weights for visible x hidden to gaussian with m = 0, sd= .1
+		#set initial weights for visible x hidden to sample from gaussian with m = 0, sd= .1
 		for row in range(self.visibleUnitCount):
 			for col in range(self.hiddenUnitCount):
 				self.weights[row][col] = gauss(0, .1)
 		
 		self.logInternals("set random values for weight matrix")
 		
-		#initialize hidden bias vector to 0s 
-		self.hiddenBiases = np.zeroes(1, self.hiddenUnitCount)
+		#initialize initial hidden bias vector to 0s 
+		self.hiddenBiases = np.zeros((self.hiddenUnitCount))
 		
-		#initialize visible bias vector to 0s
-		self.visibleBiases = np.zeroes(1, self.visibleUnitCount)
 
-		#for each unit, set initial bias to log odds of activation for training set
-			
+		#for each visible unit, set initial bias to log odds for training set
+		self.visibleBiases = np.zeros((self.visibleUnitCount))
+		matrixSumOfTrainingSet = np.zeros((1, self.visibleUnitCount))
+		for trainingSample in self.trainingSet:
+			matrixSumOfTrainingSet = np.add(matrixSumOfTrainingSet, trainingSample)
+		
+		numberOfSamples = len(self.trainingSet)
 
+		#print(f"matrixSumOfTrainingSet: {matrixSumOfTrainingSet}, numberOfSamples: {numberOfSamples}")
+		for i in range(self.visibleUnitCount):
+			self.visibleBiases[i] = log(matrixSumOfTrainingSet[0][i] / (numberOfSamples - matrixSumOfTrainingSet[0][i]))
+
+
+	
+		
 	def printInternals(self, _label):
 		now = datetime.now()
 		timeStamp = now.strftime("%d/%m/%Y %H:%M:%S")
-		message = f"{timeStamp} {_label}\nlr: {self.learningRate}, visibleUnitCount: {self.visibleUnitCount} hiddenUnitCount: {self.hiddenUnitCount}\n------------------------------------------------\n"
+		message = f"{timeStamp} {_label}\nvisibleUnitCount: {self.visibleUnitCount} hiddenUnitCount: {self.hiddenUnitCount}\n------------------------------------------------\n"
 		print(message)
 
 	def logInternals(self, _label):
 		now = datetime.now()
 		timeStamp = now.strftime("%d/%m/%Y %H:%M:%S")
-		message = f"{timeStamp} {_label}\nlr: {self.learningRate}, visibleUnitCount: {self.visibleUnitCount} hiddenUnitCount: {self.hiddenUnitCount}\n------------------------------------------------\n"
+		message = f"{timeStamp} {_label}\nvisibleUnitCount: {self.visibleUnitCount} hiddenUnitCount: {self.hiddenUnitCount}\n------------------------------------------------\n"
 		self.logFileObject.write(message)
 
 	
 	
-	def probHgivenXVector(hIndex, xv):
+	def probHGivenXVector(self, hIndex, xv):
 		#linear combination on xv
 		sumOfVectorWeightProducts = 0
 		for i in range(len(xv)):
-			sumOfVectorWeightProducts += xv[i]*weights[i][hIndex]
-		return logistic(hiddenBiases[hIndex] + sumOfVectorWeightProducts)
+			sumOfVectorWeightProducts += xv[i]*self.weights[i][hIndex]
+		return logistic(self.hiddenBiases[hIndex] + sumOfVectorWeightProducts)
 
 	
-	def probXgivenHVector(vIndex, hv):
+	def probXGivenHVector(self, vIndex, hv):
 		#linear combination on hv
 		sumOfVectorWeightProducts = 0
 		for i in range(len(hv)):
-			sumOfVectorWeightProducts += hv[i]*weights[vIndex][i]
-		return logistic(visibleBiases[vIndex] + sumOfVectorWeightProducts)
+			sumOfVectorWeightProducts += hv[i]*self.weights[vIndex][i]
+		return logistic(self.visibleBiases[vIndex] + sumOfVectorWeightProducts)
+		
+	"""
+		do i need to worry about comparing to uniform bernoulli?
 
+		does rounding work?
+	"""
+	def expectedHGivenXVector(self, hIndex, xv):
+		return round(self.probHGivenXVector(hIndex, xv))
+
+	
+	"""
+		do i need to worry about comparing to uniform bernoulli?
+		
+		does rounding work?
+	"""
+	def expectedXGivenHVector(self, vIndex, hv):
+		return round(self.probXGivenHVector(vIndex, hv))
+	
+
+	def expectedXVectorGivenHVector(self, hv):
+		tempXVector = np.zeros((self.visibleUnitCount))
+		for i in range(self.visibleUnitCount):
+			tempXVector[i] = self.expectedXGivenHVector(i, hv)
+		return tempXVector
+
+
+	def expectedHVectorGivenXVector(self, xv):
+		tempHVector = np.zeros((self.hiddenUnitCount))
+		for i in range(self.hiddenUnitCount):
+			tempHVector[i] = self.expectedHGivenXVector(i, xv)
+		return tempHVector
 	
 	"""
 	initialize starting weights and biases
@@ -109,13 +148,23 @@ class RBM:
 			decrease weights for all elements of that set
 	do all that stuff multiple times
 
-	"""
+	"""	
 	
-	#def train(trainingSet):
-		#initialize probabilityDistributionArray
-		#"The weights are typically initialized to small random values chosen from a zero-mean Gaussian with a standard deviation of about 0.01."
+	def train(self,learningRate, gibbsIterations):
+		for i in range(len(self.trainingSet)):
+			tempVisible = np.copy(self.trainingSet[i])
+			tempHidden = np.zeros((self.hiddenUnitCount))
+			for gibbsIter in range(gibbsIterations):
+				tempHidden = self.expectedHVectorGivenXVector(tempVisible)
+				tempVisible = self.expectedXVectorGivenHVector(tempHidden)
+			print(f"after {gibbsIterations} gibbs iterations: ")
+			print(f"\t trainingXVector: {self.trainingSet[i]}")
+			print(f"\t generatedXVector: {tempVisible}")
+			print(f"\t startingHVector: {np.zeros((self.hiddenUnitCount))}")
+			print(f"\t generatedHVector: {tempHidden}")
+			print("-" * 25)
 
-	
+
 	"""
 	
 	#energyOfConfiguration(visibleBiases, weights, hiddenBiases)

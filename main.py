@@ -8,11 +8,11 @@ from random import gauss
 
 
 #expect about 25% to be associated with 'romance' hidden unit rest random
-#SHEET_ID = '1QtGC9wmIANYb7DFBBVMrbRqh4QZsx0LCzn8WWH1D474'
+SHEET_ID = '1QtGC9wmIANYb7DFBBVMrbRqh4QZsx0LCzn8WWH1D474'
 
 
 #expect about 25% to be associated with each of the 3 categories, then 25% random
-SHEET_ID = '1d2SJXqawVG5g7SuI6-XU6cST392m7h3j6Y-Ngl5gwpo'
+#SHEET_ID = '1d2SJXqawVG5g7SuI6-XU6cST392m7h3j6Y-Ngl5gwpo'
 
 
 scopes = ['https://www.googleapis.com/auth/spreadsheets.readonly']
@@ -38,10 +38,17 @@ def main():
 	if not values:
 		print('no data found')
 	else:
-		numpyTestSet = numpy.asarray(values)
+		numpyTrainingSet = numpy.asarray(values, dtype=numpy.int8)
 
-	rbm1 = RBM(.001, 3, fo, numpyTestSet)	
+	rbm1 = RBM(.001, 3, fo, numpyTrainingSet)	
+
+	#print(f"probability of h1 given first training vector before training: {rbm1.probHgivenXvector(numpyTrainingSet[0])}")
+
+	#print(f"expected HVector given first training: {rbm1.expectedHVectorGivenXVector(numpyTrainingSet[0])}" )
+	rbm1.train(.001, 3)
+	#print(f"expected XVector given first training: {rbm1.expectedXVectorGivenHVector([0,0,0])}" )
 	
+	#print(f"probability of h1 given first training vector after training: {rbm1.probHgivenXvector(numpyTrainingSet[0])}"
 	fo.close()
 if __name__ =="__main__":
 	main()
