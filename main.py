@@ -1,4 +1,4 @@
-import numpy as numpy
+import numpy as np
 from rbm import RBM
 from apiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
@@ -18,6 +18,8 @@ SHEET_ID = '1QtGC9wmIANYb7DFBBVMrbRqh4QZsx0LCzn8WWH1D474'
 scopes = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 SHEET_RANGE = 'B2:M17'
 
+HIDDEN_UNITS = 4
+
 def get_service(api_name, api_version, key_file_location):
         creds = ServiceAccountCredentials.from_json_keyfile_name(key_file_location, scopes)
         service = build(api_name, api_version, credentials=creds)
@@ -33,22 +35,47 @@ def main():
 	#get file object for log file
 	fo = open("log.txt", "a")
 	
-	numpyTestSet = []
+	numpyTrainingSet = []
 	
 	if not values:
 		print('no data found')
 	else:
-		numpyTrainingSet = numpy.asarray(values, dtype=numpy.int8)
+		numpyTrainingSet = np.asarray(values, dtype=np.int8)
 
-	rbm1 = RBM(.001, 3, fo, numpyTrainingSet)	
+
+	numpyTrainingSet = np.reshape(numpyTrainingSet, (len(numpyTrainingSet),len(numpyTrainingSet[0]),-1))
+	
+	#print(f"shape of numpyTrainingSet: {np.shape(numpyTrainingSet)}")
+	#print(f"shape of first element: {np.shape(numpyTrainingSet[0])}")
+	#print(f" first element: {numpyTrainingSet[0]}")
+	#print(f" first value: {numpyTrainingSet[0][0][0]}")
+	
+	#testVector1 = np.array([1,0,1])
+	#testVector2 = np.array([0,2,0])
+
+	#print(f"shape of testVector1: ", np.shape(testVector1))
+	#print(np.matmul(np.reshape(testVector1, (3,1)), np.reshape(testVector2, (1,3))))
+
+	#print(f"numpyTrainingSet shape: {np.shape(numpyTrainingSet)} before:\n{numpyTrainingSet}")
+	#print(f"numpyTrainingSet shape: {np.shape(numpyTrainingSet)} after:\n{numpyTrainingSet}")
+	
+	rbm1 = RBM(HIDDEN_UNITS, fo, numpyTrainingSet)	
 
 	#print(f"probability of h1 given first training vector before training: {rbm1.probHgivenXvector(numpyTrainingSet[0])}")
 
 	#print(f"expected HVector given first training: {rbm1.expectedHVectorGivenXVector(numpyTrainingSet[0])}" )
-	rbm1.train(.001, 3)
+	#print(f"prob x given hVector: {rbm1.probXGivenHVector(0, np.reshape([1,0,1], (3,1)))}")
+	#print(f"xVector given hVector: {rbm1.expectedXVectorGivenHVector(np.reshape([1,0,1], (3,1)))}")
+	#print(f"shape of generated Xvector: {np.shape(rbm1.expectedXVectorGivenHVector(np.reshape([1,0,1], (3,1))))}")
+	#print(f"shape of generated HVector: {np.shape(rbm1.expectedHVectorGivenXVector(np.reshape([1,0,1,0,1,1,0,1,1,0,0,0], (12,1))))}")
+
+	rbm1.train(.001, 10, 100)
 	#print(f"expected XVector given first training: {rbm1.expectedXVectorGivenHVector([0,0,0])}" )
-	
-	#print(f"probability of h1 given first training vector after training: {rbm1.probHgivenXvector(numpyTrainingSet[0])}"
+
+	#romance vector	
+	testVector = np.reshape([1,1,1,0,0,0,0,0,0,0,0,0], (12,1))
+	for i in range(HIDDEN_UNITS):
+	       print(f"for hidden unit {i}, probability is: {rbm1.probHGivenXVector(i, testVector)}")
 	fo.close()
 if __name__ =="__main__":
 	main()
