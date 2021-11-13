@@ -32,6 +32,7 @@ from apiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
 from mathtools import *
 from random import gauss
+from plotstuff import generateImages
 
 
 #TOY MOVIE DATASET: 25% romance, 75% other
@@ -67,7 +68,7 @@ def main():
 	values = result.get('values', [])
 	
 	#get file object for log file
-	fo = open("log.txt", "a")
+	fo = open("log.txt", "w")
 	
 	numpyTrainingSet = []
 	
@@ -77,14 +78,14 @@ def main():
 		numpyTrainingSet = np.asarray(values, dtype=np.int8)
 
 	numpyTrainingSet = np.reshape(numpyTrainingSet, (len(numpyTrainingSet),len(numpyTrainingSet[0]),-1))
-	
-	
-	km1 = Kmodes(binVectorHammingDistance, numpyTrainingSet, fo)
-	
-	km1.clusterCountIterationExperiment(50)	
 
-	#kClusters = km1.kClustersOfIndexes(3)
+		
+	#km1 = Kmodes(binVectorHammingDistance, numpyTrainingSet, fo)
+	#km1.clusterCountIterationExperiment(10)	
 	
+	generateImages(fo)
+
+
 	fo.close()
 if __name__ =="__main__":
 	main()

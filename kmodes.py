@@ -75,7 +75,7 @@ class Kmodes:
 
 	def clusterCountIterationExperiment(self, maxK):
 		for k in range(1, maxK+1):
-			self.fo.write(f"clusterCountIterationExperiment:: {k} {self.avgHammingDistancesForKClusters(k)}")
+			self.logFile.write(f"clusterCountIterationExperiment:: {k} {self.avgHammingDistancesForKClusters(k)}\n")
 
 
 
@@ -149,7 +149,7 @@ class Kmodes:
 					converged = False
 					
 		
-		self.fo.write(f"Kmodes.kClustersOfIndexes:: {k} {iterationsBeforeConvergence}")
+		self.logFile.write(f"Kmodes.kClustersOfIndexes:: {k} {iterationsBeforeConvergence}\n")
 		self.indexClusters = indexClusters
 
 		return indexClusters
