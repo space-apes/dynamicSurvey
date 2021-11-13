@@ -1,3 +1,30 @@
+"""
+NAME: main.py
+AUTHOR: Brian Reza Smith
+INSTITUTION: California State University Dominguez Hills
+YEAR: 2021
+DESCRIPTION:
+	
+	driver for RBM experiment to use RBMs in cultural classification.
+	Given a training set of binary input vectors representing cultural features (binary survey questions)
+		1. use K-Modes method to search for a good estimate for number of hidden features
+		2. encode probability distribution for training set
+		2. generate examples of new input vectors representative of the training distribution
+		3. identify hidden features that may represent underlying cultural identities
+		4. produce a probability for a sample that it is associated with a hidden feature
+       	
+	Uses data from google sheets.
+
+	Global parameter variables: 
+
+	SHEET_ID: which google sheets to use
+	SHEET_RANGE: which columns/rows do you want to use 
+	LEARNING_RATE: modifies how drastically RBM weights and biases are updated during learning
+	GIBBS_ITERATIONS: sets how many times RBM samples from hidden to visible layers
+	ITERATIONS_THROUGH_TRAINING_SET: number of times RBM cycles during entire training set durin
+		g learning phase
+"""
+
 import numpy as np
 from rbm import RBM
 from kmodes import Kmodes
@@ -49,42 +76,15 @@ def main():
 	else:
 		numpyTrainingSet = np.asarray(values, dtype=np.int8)
 
-
 	numpyTrainingSet = np.reshape(numpyTrainingSet, (len(numpyTrainingSet),len(numpyTrainingSet[0]),-1))
 	
 	
-	km1 = Kmodes(binVectorHammingDistance, numpyTrainingSet)
+	km1 = Kmodes(binVectorHammingDistance, numpyTrainingSet, fo)
 	
-	
-	km1.avgHammingDistancesForKClustersExperiment(6)
+	km1.clusterCountIterationExperiment(50)	
 
-	"""
-	
-	tv1 = np.reshape(np.array([1,1,1]), (3,1))
-	tv2 = np.reshape(np.array([1,1,1]), (3,1))
-	tv3 = np.reshape(np.array([0,0,1]), (3,1))
-	tv4 = np.reshape(np.array([1,0,1]), (3,1))
-	tv5 = np.reshape(np.array([0,0,0]), (3,1))
-
-	vectorList = [tv1,tv2,tv3,tv4,tv5]
-	km1 = Kmodes(binVectorHammingDistance, vectorList)
-
-	print(f"total mode is: {km1.modeOfBinVectorList(vectorList)}")
-
-	print(f"closest centroid to [1,1,1] is: {km1.indexOfClosestCentroid(tv1, [tv3, tv4, tv5])}")
-	"""
 	#kClusters = km1.kClustersOfIndexes(3)
 	
-	"""
-	rbm1 = RBM(HIDDEN_UNITS, fo, numpyTrainingSet)	
-
-	rbm1.train(LEARNING_RATE, GIBBS_ITERATIONS, ITERATIONS_THROUGH_TRAININGSET)
-
-	#romance vector	
-	testVector = np.reshape([1,1,1,0,0,0,0,0,0,0,0,0], (12,1))
-	for i in range(HIDDEN_UNITS):
-	       print(f"for hidden unit {i}, probability is: {rbm1.probHGivenXVector(i, testVector)}")a
-	"""
 	fo.close()
 if __name__ =="__main__":
 	main()

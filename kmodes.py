@@ -1,3 +1,20 @@
+"""
+NAME: kmodes.py
+AUTHOR: Brian Reza Smith
+INSTITUTION: California State University Dominguez Hills
+YEAR: 2021
+DESCRIPTION:
+	definition of Kmodes class. Take in list of binary column vectors 
+	and cluster them based on a similarity measure (euclidean or hamming distance). 
+	
+	notable methods:
+		constructor(distanceFunction, dataSet, logFile) 
+		kClustersOfIndexes(k) -> 2d list, each list contains indexes clustered together	
+		modeOfBinVectorList(listOfVectors) -> representative vector for list 
+		avgHammingDistanceToTargetVector(listOfVectors, targetVector)
+		avgHammingDistanceForKClusters(k) 
+"""
+
 import numpy as np
 from random import randint
 from mathtools import binVectorHammingDistance, isBinaryColVector, isBinaryColVectorList
@@ -6,11 +23,13 @@ class Kmodes:
 	distanceFunction = None
 	trainingSet = None
 	indexClusters = []
+	logFile = None
 
-	def __init__(self, _distanceFunction, _totalVectors):
+	def __init__(self, _distanceFunction, _totalVectors, _logFile):
 		self.distanceFunction = _distanceFunction
 		self.totalVectors = _totalVectors
 		self.indexClusters = []
+		self.logFile = _logFile
 
 	def modeOfBinVectorList(self, listOfVectors):
 		firstShape = np.shape(listOfVectors[0])
@@ -35,7 +54,7 @@ class Kmodes:
 		return totalHammingDistances / len(listOfVectors)
 	
 
-	def avgHammingDistancesForKClustersExperiment(self, k):
+	def avgHammingDistancesForKClusters(self, k):
 		self.kClustersOfIndexes(k)
 		totalHammingDistances = 0
 		vectorClusters = []
@@ -48,13 +67,16 @@ class Kmodes:
 			mode = self.modeOfBinVectorList(vectorClusters[clusterIndex])
 			for vector in vectorClusters[clusterIndex]:
 				withinClusterHammingDistances += binVectorHammingDistance(vector, mode)
-			print(f"for cluster {clusterIndex}, avg hamming distance is: {withinClusterHammingDistances / len(vectorClusters[clusterIndex])}")
+			#print(f"for cluster {clusterIndex}, avg hamming distance is: {withinClusterHammingDistances / len(vectorClusters[clusterIndex])}")
 			totalHammingDistances += withinClusterHammingDistances
 		
 		return totalHammingDistances / len(self.totalVectors)
 
 
-					
+	def clusterCountIterationExperiment(self, maxK):
+		for k in range(1, maxK+1):
+			self.fo.write(f"clusterCountIterationExperiment:: {k} {self.avgHammingDistancesForKClusters(k)}")
+
 
 
 
@@ -91,7 +113,6 @@ class Kmodes:
 			indexClusters[closestCentroidIndex].append(vectorIndex)
 
 		
-		print(f"clusterIndexes after random assignment is\n {indexClusters}")
 		#now, find modes of clusters, those are new centroids.
 		#group vectors into new clusters using new centroids
 		#continue doing this until assignments to clusters are same as last iteration
@@ -128,7 +149,7 @@ class Kmodes:
 					converged = False
 					
 		
-		print(f"Kmodes.kClustersOfIndexes:: CONVERGED! took {iterationsBeforeConvergence} iterations")
+		self.fo.write(f"Kmodes.kClustersOfIndexes:: {k} {iterationsBeforeConvergence}")
 		self.indexClusters = indexClusters
 
 		return indexClusters
