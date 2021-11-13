@@ -7,20 +7,16 @@ from mathtools import *
 from random import gauss
 
 
-#TOY MOVIE DATASET: 25% romance, 75% other
-#SHEET_ID = '1QtGC9wmIANYb7DFBBVMrbRqh4QZsx0LCzn8WWH1D474'
-#SHEET_RANGE = 'B2:M17'
 
-#TOY MOVIE DATASET: 25% romance, 25%scifi, 25%action, 25% other
+#expect about 25% to be associated with 'romance' hidden unit rest random
+SHEET_ID = '1QtGC9wmIANYb7DFBBVMrbRqh4QZsx0LCzn8WWH1D474'
+
+#expect about 25% to be associated with each of the 3 categories, then 25% random
 #SHEET_ID = '1d2SJXqawVG5g7SuI6-XU6cST392m7h3j6Y-Ngl5gwpo'
-#SHEET_RANGE = 'B2:M17'
-
-#59 respondents culture dataset
-SHEET_ID='17y07Dg89WMv-bOZkh_GxhuoZJPjKGw9Xg3R5am_nMOs'
-SHEET_RANGE = 'F2:BA60'
 
 
 scopes = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+SHEET_RANGE = 'B2:M17'
 
 HIDDEN_UNITS = 4
 LEARNING_RATE = .001
@@ -53,28 +49,18 @@ def main():
 	numpyTrainingSet = np.reshape(numpyTrainingSet, (len(numpyTrainingSet),len(numpyTrainingSet[0]),-1))
 	
 	
-	km1 = Kmodes(binVectorHammingDistance, numpyTrainingSet)
-	
-	
-	km1.avgHammingDistancesForKClustersExperiment(6)
 
-	"""
-	
-	tv1 = np.reshape(np.array([1,1,1]), (3,1))
-	tv2 = np.reshape(np.array([1,1,1]), (3,1))
-	tv3 = np.reshape(np.array([0,0,1]), (3,1))
-	tv4 = np.reshape(np.array([1,0,1]), (3,1))
-	tv5 = np.reshape(np.array([0,0,0]), (3,1))
+	#km1 = Kmodes(binVectorHammingDistance, numpyTrainingSet)
+	#totalMode = km1.modeOfBinVectorList(numpyTrainingSet)
 
-	vectorList = [tv1,tv2,tv3,tv4,tv5]
-	km1 = Kmodes(binVectorHammingDistance, vectorList)
 
-	print(f"total mode is: {km1.modeOfBinVectorList(vectorList)}")
+	#print(f"mode for entire training set is: {totalMode}")
+	#print(f"avg hamming distance from training set to training mode is: {km1.avgHammingDistanceToTargetVector(numpyTrainingSet, totalMode)}")
 
-	print(f"closest centroid to [1,1,1] is: {km1.indexOfClosestCentroid(tv1, [tv3, tv4, tv5])}")
-	"""
 	#kClusters = km1.kClustersOfIndexes(3)
-	
+
+	#print(f"first random assignments\n {kClusters}")
+
 	"""
 	rbm1 = RBM(HIDDEN_UNITS, fo, numpyTrainingSet)	
 
