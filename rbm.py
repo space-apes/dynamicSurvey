@@ -1,17 +1,28 @@
+"""
+NAME: rbm.py
+AUTHOR: Brian Reza Smith
+INSTITUTION: California State University Dominguez Hills
+YEAR: 2021
+DESCRIPTION:
+	implementation of restricted boltzmann machine for binary vector {0,1} data. 
+	Takes in numpy array of binary column vectors.  
+
+	notable methods:
+		constructor(hiddenUnitCount, logFileObject, trainingDataSet, logLevel)
+		train(learningRate, gibbsIterations, iterationsThroughTrainingSet)
+		probHGivenXVector(hIndex, xVector) conditional probability of hIndex activation
+		probXGivenHVector(XIndex, hVector) conditional probability of xIndex activation
+		percentOverlapBetweenVectors(v1, v2) normalized hamming distance
+
+
+"""
 from datetime import datetime
 import numpy as np
 from mathtools import logistic
 from random import gauss
 from math import log
-
+import sys
 """
-NUMPY BROADCASTING : 
-However, NumPy also has a concept of broadcasting and one of the rules of broadcasting is that 
-extra axes will be automatically added to any array on the left-hand side of its shape whenever an operation requires it. 
-So, a 1-dimensional NumPy array of shape (5,) can broadcast to a 2-dimensional array of shape (1,5) 
-(or 3-dimensional array of shape (1,1,5), etc).
-https://stats.stackexchange.com/questions/284995/are-1-dimensional-numpy-arrays-equivalent-to-vectors
-
 
 NUMBER OF HIDDEN UNITS:
 how many bits it would take to describe each data-vector if you were using a good
@@ -27,15 +38,10 @@ The weights are typically initialized to small random values chosen from a zero-
 a standard deviation of about 0.01.
 
 RANDOM VALUES FOR BIASEs: 
-it is usually helpful to initialize the bias of visible unit i to log[pi/(1−pi)] where pi is the proportion of training vectors in which unit i is on. If this is not done, the early stage of learning will us
+it is usually helpful to initialize the bias of visible unit i to log[pi/(1-pi)] where pi is the proportion of training vectors in which unit i is on. If this is not done, the early stage of learning will us
 the hidden units to make i turn on with a probability of approximately pi.
 
 Set initial value of hidden unit biases to 0. 
-
-
-
-WHAT ABOUT LEARNING RATE?!
-
 
 
 """
@@ -50,12 +56,11 @@ class RBM:
 	weights = []
 	logFileObject = None
 
-	def __init__(self, _hiddenUnitCount, _logFileObject, _trainingSet):
+	def __init__(self, _hiddenUnitCount, _logFileObject, _trainingSet, _logLevel, ):
 		self.trainingSet = _trainingSet
 		self.hiddenUnitCount = _hiddenUnitCount
 		self.logFileObject = _logFileObject
-		self.logInternals("set initial parameters")
-
+		self.logLevel = _logLevel
 		
 		#determine number of visible units from length of first training sample
 		self.visibleUnitCount = len(self.trainingSet[0])
@@ -81,12 +86,21 @@ class RBM:
 		
 		numberOfSamples = len(self.trainingSet)
 
-		print(f"matrixSumOfTrainingSet: {matrixSumOfTrainingSet}, numberOfSamples: {numberOfSamples}")
-
 		for i in range(self.visibleUnitCount):
-			self.visibleBiases[i] = log(matrixSumOfTrainingSet[i] / (numberOfSamples - matrixSumOfTrainingSet[i]))
+			probSuccess = matrixSumOfTrainingSet[i][0] / numberOfSamples
+			probFail = (1-(probSuccess))
 
-		self.logInternals("END OF CONSTRUCTOR")	
+			#in 0 cases, avoid breaking logit by setting to very small value
+			if probSuccess == 0:
+				probSuccess = 10**-5
+			if probFail ==0:
+				probFail = 10**-5
+
+			self.visibleBiases[i] = log( probSuccess / probFail)
+			#self.visibleBiases[i] = log(matrixSumOfTrainingSet[i] / (numberOfSamples - matrixSumOfTrainingSet[i]))
+		
+		if self.logLevel =='high':
+		 	self.printInternals('AFTER INITIALIZATION')
 
 		
 	def printInternals(self, _label):
@@ -175,8 +189,7 @@ class RBM:
 	"""	
 	
 	def train(self,learningRate, gibbsIterations, timesThroughTrainingSet):
-		self.logInternals("BEGIN TRAINING")
-		for iters in range(timesThroughTrainingSet):
+		for trainingSetIterations in range(timesThroughTrainingSet):
 			sumAcrossSamplesForPercentGeneratedCorrectly = 0
 			for i in range(len(self.trainingSet)):	
 				hiddenFromTrainingVisible = self.expectedHVectorGivenXVector(self.trainingSet[i])
@@ -200,5 +213,8 @@ class RBM:
 
 				sumAcrossSamplesForPercentGeneratedCorrectly += self.percentOfOverlapBetweenVectors(self.trainingSet[i], gibbsVisible)
 
-			print(f"ITERATION: {iters}: avg% generatedCorrectly: {sumAcrossSamplesForPercentGeneratedCorrectly / len(self.trainingSet)}")
-		self.logInternals("END TRAINING")
+			#avg trainingVisible == generatedVisible for trainingVisible->hidden->generatedVisible
+			#across all training set items
+			self.logFileObject.write(f"RBM.train:: {learningRate} {gibbsIterations} {trainingSetIterations} {sumAcrossSamplesForPercentGeneratedCorrectly / len(self.trainingSet)}\n")
+		if self.logLevel == 'high':
+			self.printInternals('AFTER TRAINING')

@@ -9,7 +9,7 @@ DESCRIPTION:
 	
 	notable methods:
 		constructor(distanceFunction, dataSet, logFile) 
-		kClustersOfIndexes(k) -> 2d list, each list contains indexes clustered together	
+		kClustersOfIndexes(k) -> 2d list, each list contains indexes of observations clustered together	
 		modeOfBinVectorList(listOfVectors) -> representative vector for list 
 		avgHammingDistanceToTargetVector(listOfVectors, targetVector)
 		avgHammingDistanceForKClusters(k) 
@@ -25,11 +25,12 @@ class Kmodes:
 	indexClusters = []
 	logFile = None
 
-	def __init__(self, _distanceFunction, _totalVectors, _logFile):
+	def __init__(self, _distanceFunction, _totalVectors, _logFile, _logLevel):
 		self.distanceFunction = _distanceFunction
 		self.totalVectors = _totalVectors
 		self.indexClusters = []
 		self.logFile = _logFile
+		self.logLevel = _logLevel
 
 	def modeOfBinVectorList(self, listOfVectors):
 		firstShape = np.shape(listOfVectors[0])
@@ -53,7 +54,8 @@ class Kmodes:
 			totalHammingDistances += binVectorHammingDistance(currentVector, targetVector)
 		return totalHammingDistances / len(listOfVectors)
 	
-
+	#Do i need to remove contribution from empty clusters? 
+	
 	def avgHammingDistancesForKClusters(self, k):
 		self.kClustersOfIndexes(k)
 		totalHammingDistances = 0
@@ -67,7 +69,8 @@ class Kmodes:
 			mode = self.modeOfBinVectorList(vectorClusters[clusterIndex])
 			for vector in vectorClusters[clusterIndex]:
 				withinClusterHammingDistances += binVectorHammingDistance(vector, mode)
-			#print(f"for cluster {clusterIndex}, avg hamming distance is: {withinClusterHammingDistances / len(vectorClusters[clusterIndex])}")
+			if self.logLevel == "high":
+				print(f"for cluster {clusterIndex}, avg hamming distance is: {withinClusterHammingDistances / len(vectorClusters[clusterIndex])}")
 			totalHammingDistances += withinClusterHammingDistances
 		
 		return totalHammingDistances / len(self.totalVectors)
@@ -75,7 +78,7 @@ class Kmodes:
 
 	def clusterCountIterationExperiment(self, maxK):
 		for k in range(1, maxK+1):
-			self.logFile.write(f"clusterCountIterationExperiment:: {k} {self.avgHammingDistancesForKClusters(k)}\n")
+			self.logFile.write(f"Kmodes.clusterCountIterationExperiment:: {k} {self.avgHammingDistancesForKClusters(k)}\n")
 
 
 
@@ -96,6 +99,7 @@ class Kmodes:
 				if binVectorHammingDistance(vector, centroidList[i]) < binVectorHammingDistance(vector, centroidList[closestCentroidIndex]):
 					closestCentroidIndex = i
 		return closestCentroidIndex
+
 
 	def kClustersOfIndexes(self,k):
 		indexClusters = []
@@ -151,5 +155,7 @@ class Kmodes:
 		
 		self.logFile.write(f"Kmodes.kClustersOfIndexes:: {k} {iterationsBeforeConvergence}\n")
 		self.indexClusters = indexClusters
+		if self.logLevel == 'high':
+			print(f"Kmodes.kClusteresOfIndexes:: clusters:\n {indexClusters}")
 
 		return indexClusters

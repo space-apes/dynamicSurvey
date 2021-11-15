@@ -1,0 +1,19 @@
+DATASET{toy,culture,generatedCulture}: generatedCulture
+EXPERIMENT{kmodes,rbm}: kmodes
+RBM_VERBOSITY{low,high}: low
+KMODES_VERBOSITY{low,high}: low
+KMODES_MAXK{naturalNumbers}: 20
+RBM_LEARNING_RATE{positiveRealNumbers}: .001
+RBM_HIDDEN_UNIT_COUNT{naturalNumbers}: 5
+RBM_GIBBS_ITERATIONS{naturalNumbers}: 10
+RBM_TRAINING_SET_PASSES{naturalNumbers}: 10
+
+
+
+
+
+
+#For RBM convergence on toy dataset:
+	- learning rate: .001
+	- hidden units: > 10
+	- training set passes: ~70
