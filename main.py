@@ -73,8 +73,11 @@ def main():
 		#TOY MOVIE DATASET: 25% romance, 75% other
 		SHEET_ID = '1QtGC9wmIANYb7DFBBVMrbRqh4QZsx0LCzn8WWH1D474'
 		SHEET_RANGE = 'B2:M17'
+	if config['DATASET'] == 'toyEven':	
+		#TOY MOVIE DATASET: 25% romance, 25% scifi, 25% action, 25% random
+		SHEET_ID = '1d2SJXqawVG5g7SuI6-XU6cST392m7h3j6Y-Ngl5gwpo'
+		SHEET_RANGE = 'B2:M17'
 	elif config['DATASET'] == 'culture':
-		#59 respondents culture dataset
 		SHEET_ID='17y07Dg89WMv-bOZkh_GxhuoZJPjKGw9Xg3R5am_nMOs'
 		SHEET_RANGE = 'F2:BA60'
 	elif config['DATASET'] == 'generatedCulture':

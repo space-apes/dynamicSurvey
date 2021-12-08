@@ -5,21 +5,15 @@ INSTITUTION: California State University Dominguez Hills
 YEAR: 2021
 DESCRIPTION:
 	implementation of restricted boltzmann machine for binary vector {0,1} data. 
-	Takes in numpy array of binary column vectors.  
-
-	notable methods:
-		constructor(hiddenUnitCount, logFileObject, trainingDataSet, logLevel)
-		train(learningRate, gibbsIterations, iterationsThroughTrainingSet)
-		probHGivenXVector(hIndex, xVector) conditional probability of hIndex activation
-		probXGivenHVector(XIndex, hVector) conditional probability of xIndex activation
-		percentOverlapBetweenVectors(v1, v2) normalized hamming distance
+	Takes in numpy array of binary column vectors.
+	Models probability distribution of training set.
 
 
 """
 from datetime import datetime
 import numpy as np
 from mathtools import logistic
-from random import gauss
+import random
 from math import log
 import sys
 """
@@ -71,7 +65,7 @@ class RBM:
 		#set initial weights for visible x hidden to sample from gaussian with m = 0, sd= .1
 		for row in range(self.visibleUnitCount):
 			for col in range(self.hiddenUnitCount):
-				self.weights[row][col] = gauss(0, .1)
+				self.weights[row][col] = random.gauss(0, .1)
 		
 		
 		#initialize initial hidden bias vector to 0s 
@@ -125,32 +119,62 @@ class RBM:
 		return logistic(self.hiddenBiases[hIndex][0] + sumOfVectorWeightProducts)
 
 	
+		
+	"""
+		here we can see stochastic nature of rbm. 
+		even with high probability of activation, still some chance it won't fire.
+		This introduces noise during training. 
+	"""
+	def expectedHGivenXVector(self, hIndex, xv):
+		probH = self.probHGivenXVector(hIndex,xv)
+		random.seed()
+		randUniform = random.random()
+		if randUniform <= probH:
+			return 1 
+		else:
+			return 0
+		#return round(self.probHGivenXVector(hIndex, xv))
+
+
 	def probXGivenHVector(self, vIndex, hv):
+		"""
+			@param int vIndex : index of visible node for which we wish to calculate activation probability
+			@param colVector hv : binary hidden value activations from which we wish to calculate activation of particular visible node
+			
+			@return float probability : activation probability
+		"""
 		#linear combination on hv
 		sumOfVectorWeightProducts = 0
 		for i in range(len(hv)):
 			sumOfVectorWeightProducts += hv[i][0]*self.weights[vIndex][i]
 		return logistic(self.visibleBiases[vIndex][0] + sumOfVectorWeightProducts)
-		
-	"""
-		do i need to worry about comparing to uniform bernoulli?
-
-		does rounding work?
-	"""
-	def expectedHGivenXVector(self, hIndex, xv):
-		return round(self.probHGivenXVector(hIndex, xv))
-
 	
-	"""
-		do i need to worry about comparing to uniform bernoulli?
-		
-		does rounding work?
-	"""
 	def expectedXGivenHVector(self, vIndex, hv):
-		return round(self.probXGivenHVector(vIndex, hv))
+		"""
+			Notice comparison to random samples from uniform distribution. 
+			Here we can see stochastic nature of RBM: even with strong collective push from neighboring weights/node states, target may not fire. 
+
+			@param int vIndex : index of visible node for which we wish to calculate state
+			@param colVector hv : binary hidden value activations from which we wish to calculate particular visible node state
+			
+			@return int activation : 0 or 1 value for visible node state
+		"""
+		probX = self.probXGivenHVector(vIndex,hv)
+		random.seed()
+		randUniform = random.random()
+		if randUniform <= probX:
+			return 1 
+		else:
+			return 0
+		#return round(self.probXGivenHVector(vIndex, hv))
 	
 
 	def expectedXVectorGivenHVector(self, hv):
+		"""
+			@param colVector hv : binary hidden value vector from which to generate an entire visible layer activation vector
+
+			@return colVector generatedVisibleLayer : binary visible layer vector from given hidden layer vector
+		"""
 		tempXVector = np.zeros((self.visibleUnitCount,1))
 		for i in range(self.visibleUnitCount):
 			tempXVector[i] = self.expectedXGivenHVector(i, hv)
@@ -173,28 +197,33 @@ class RBM:
 				matchCount+=1
 		return (matchCount / len(v1))*100
 	
-	"""
-	initialize starting weights and biases
-	for each training set item
-		tempVisible = trainingSetItem
-		for gibbsIterations cycles
-			generate hidden vector using tempVisible
-			generate new visible vector from generated hidden
-
-		Weights = Weights + learningRate * ( (trainingVisible * hiddenFromTrainingVisible) - (gibbsVisible*hiddenFromGibbsVisible))
-		hiddenBiases = hiddenBiases + learningRate * (hiddenFromTrainingVisible - hiddenFromGibbsVisible) 
-		visibleBiases = visibleBiases + learningRate * (trainingVisible - gibbsVisible)
-		
-
-	"""	
 	
 	def train(self,learningRate, gibbsIterations, timesThroughTrainingSet):
+		"""
+			one stop shop for batch training of RBM. set all training parameters here. 
+
+			@param float learningRate : weight applied to incremental adjustments made to learned values (weights, biases)
+			@param int gibbsIterations : number of times to chain generating visible and hidden vectors
+			@param int timesThroughTrainingSet : number of cycles through the training set to update learned values for each training sample
+
+			@return None
+		"""
 		for trainingSetIterations in range(timesThroughTrainingSet):
+
+			#metric for evaluating reconstruction error
 			sumAcrossSamplesForPercentGeneratedCorrectly = 0
+
+			#for all samples in training set
 			for i in range(len(self.trainingSet)):	
+
+				#save visible sample from training set, and hidden vector generated from training sample
 				hiddenFromTrainingVisible = self.expectedHVectorGivenXVector(self.trainingSet[i])
+				
+				#initialize fabricated visible and hidden vectors to be generated using gibbs sampling 
 				gibbsVisible = np.copy(self.trainingSet[i])
 				hiddenFromGibbsVisible = np.zeros((self.visibleUnitCount))
+
+				#do gibbs sampling to set values for fabricated visible and hidden samples
 				for gibbsIter in range(gibbsIterations):
 					hiddenFromGibbsVisible = self.expectedHVectorGivenXVector(gibbsVisible)
 					gibbsVisible = self.expectedXVectorGivenHVector(hiddenFromGibbsVisible)
@@ -210,7 +239,8 @@ class RBM:
 				
 				#visible += learningRate(trainingVisible - gibbsVisible)
 				self.visibleBiases = np.add(self.visibleBiases, (learningRate * (np.subtract(self.trainingSet[i], gibbsVisible))))
-
+				
+				#for each sample, add % of visible units reconstructed correctly to sum. If model has been trained, this should approach 100%
 				sumAcrossSamplesForPercentGeneratedCorrectly += self.percentOfOverlapBetweenVectors(self.trainingSet[i], gibbsVisible)
 
 			#avg trainingVisible == generatedVisible for trainingVisible->hidden->generatedVisible
